@@ -1,0 +1,16 @@
+# Environments
+.env
+
+# Virtual Environment
+venv/
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# Pytest cache
+.pytest_cache/
+
+# Local scratch/debug scripts
+generate_gmail_refresh_token.py
+gmail_token.py
