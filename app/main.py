@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.core.config import settings
 from app.core.db import engine
@@ -44,12 +45,22 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     # Register routers
     from app.routes.webhook_routes import router as webhook_router
     from app.routes.review_routes import router as review_router
+    from app.routes.dashboard_routes import router as dashboard_router
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(webhook_router, prefix="/api/v1")
     app.include_router(review_router, prefix="/api/v1")
+    app.include_router(dashboard_router, prefix="/api/v1")
 
     return app
 

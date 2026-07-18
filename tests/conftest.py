@@ -8,13 +8,14 @@ from alembic import command
 
 # 1. Override the database URL to point to ticket_db_test BEFORE importing any app modules.
 # This ensures Pydantic Settings and the SQLAlchemy engine load the test database.
-TEST_DB_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/ticket_db_test"
+db_host = "postgres" if "@postgres" in os.environ.get("DATABASE_URL", "") else os.getenv("POSTGRES_HOST", "127.0.0.1")
+TEST_DB_URL = f"postgresql+asyncpg://postgres:postgres@{db_host}:5432/ticket_db_test"
 os.environ["DATABASE_URL"] = TEST_DB_URL
 
 
 async def ensure_test_db_exists():
     """Connect to default database and ensure the test database exists."""
-    postgres_db_url = "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres"
+    postgres_db_url = f"postgresql+asyncpg://postgres:postgres@{db_host}:5432/postgres"
     engine = create_async_engine(postgres_db_url, isolation_level="AUTOCOMMIT")
     
     async with engine.connect() as conn:

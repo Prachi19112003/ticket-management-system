@@ -1,5 +1,7 @@
 import json
+import uuid
 from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.redis_client import get_redis_client
 from app.integrations.llm_client import generate_completion_json
 from app.core.logging import logger
@@ -25,7 +27,13 @@ class ThreadSummaryService:
             # Fallback path: return None and proceed without summary history
             return None
 
-    async def update_summary(self, thread_id: str, new_body: str) -> str:
+    async def update_summary(
+        self,
+        thread_id: str,
+        new_body: str,
+        db: AsyncSession | None = None,
+        ticket_id: uuid.UUID | None = None
+    ) -> str:
         """
         Creates or updates a rolling summary of the email thread:
         1. Reads the previous summary from Redis.
@@ -65,13 +73,50 @@ class ThreadSummaryService:
         raw_json_str = ""
         try:
             # Call OpenRouter LLM to summarize
-            raw_json = await generate_completion_json(
+            raw_json, usage = await generate_completion_json(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 max_tokens=300,
                 temperature=0.1
             )
             raw_json_str = raw_json
+
+            if usage:
+                try:
+                    from app.repositories.llm_usage_repo import LLMUsageRepository
+                    if db is not None:
+                        llm_usage_repo = LLMUsageRepository(db)
+                        await llm_usage_repo.log_usage(
+                            ticket_id=ticket_id,
+                            call_type="thread_summary",
+                            model=settings.OPENROUTER_MODEL,
+                            input_tokens=usage.get("prompt_tokens"),
+                            output_tokens=usage.get("completion_tokens"),
+                            total_tokens=usage.get("total_tokens")
+                        )
+                    else:
+                        from app.core.db import AsyncSessionLocal
+                        from app.models.ticket import Ticket
+                        from sqlalchemy import select
+                        
+                        async with AsyncSessionLocal() as local_db:
+                            resolved_ticket_id = ticket_id
+                            if resolved_ticket_id is None:
+                                stmt = select(Ticket.id).where(Ticket.thread_id == thread_id).order_by(Ticket.created_at.desc()).limit(1)
+                                result = await local_db.execute(stmt)
+                                resolved_ticket_id = result.scalar()
+                            
+                            llm_usage_repo = LLMUsageRepository(local_db)
+                            await llm_usage_repo.log_usage(
+                                ticket_id=resolved_ticket_id,
+                                call_type="thread_summary",
+                                model=settings.OPENROUTER_MODEL,
+                                input_tokens=usage.get("prompt_tokens"),
+                                output_tokens=usage.get("completion_tokens"),
+                                total_tokens=usage.get("total_tokens")
+                            )
+                except Exception as log_err:
+                    logger.error("Failed to log LLM usage for thread summary", error=str(log_err))
             
             from app.utils.json_cleaner import clean_json_markdown
             cleaned_json = clean_json_markdown(raw_json)

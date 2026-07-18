@@ -21,7 +21,7 @@ async def generate_completion_json(
     user_prompt: str,
     max_tokens: int = 1500,
     temperature: float = 0.2
-) -> str:
+) -> tuple[str, dict]:
     """
     Submits a system and user prompt to OpenRouter and returns the output string.
     - Enforces JSON output mode using response_format={"type": "json_object"}.
@@ -56,8 +56,15 @@ async def generate_completion_json(
             if not output:
                 raise LLMException("Received empty response payload from OpenRouter.")
             
-            logger.info("Successfully received completion from OpenRouter", model=model)
-            return output
+            usage = getattr(response, "usage", None)
+            usage_dict = {
+                "prompt_tokens": getattr(usage, "prompt_tokens", None) if usage else None,
+                "completion_tokens": getattr(usage, "completion_tokens", None) if usage else None,
+                "total_tokens": getattr(usage, "total_tokens", None) if usage else None,
+            }
+            
+            logger.info("Successfully received completion from OpenRouter", model=model, usage=usage_dict)
+            return output, usage_dict
 
         except (APIConnectionError, APITimeoutError) as e:
             logger.warning(

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Management System — Demo Dashboard</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation/Header -->
+        <header class="app-header">
+            <div class="logo-container">
+                <div class="logo-icon"></div>
+                <div class="logo-text">
+                    <h1>Antigravity</h1>
+                    <span class="sub-text">Ticket Dashboard</span>
+                </div>
+            </div>
+            
+            <!-- Statistics Panel -->
+            <div class="stats-panel" id="stats-panel">
+                <div class="stat-card">
+                    <span class="stat-label">Total Tickets</span>
+                    <span class="stat-value" id="stat-total-tickets">-</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Tokens Used Today</span>
+                    <span class="stat-value" id="stat-tokens-today">-</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Tokens Used All-Time</span>
+                    <span class="stat-value" id="stat-tokens-alltime">-</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Avg. Tokens / Draft</span>
+                    <span class="stat-value" id="stat-avg-tokens">-</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="workspace">
+            <!-- Left Panel: Ticket Queue -->
+            <section class="ticket-list-panel">
+                <div class="panel-header">
+                    <h2>Ticket Queue</h2>
+                    <span class="badge" id="queue-count">0 Tickets</span>
+                </div>
+
+                <!-- Filters & Controls -->
+                <div class="filters-container">
+                    <div class="filter-group">
+                        <label for="filter-status">Status</label>
+                        <select id="filter-status">
+                            <option value="">All Statuses</option>
+                            <option value="new">New</option>
+                            <option value="classified">Classified</option>
+                            <option value="drafted" selected>Drafted (Pending)</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="sent">Sent</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filter-category">Category</label>
+                        <select id="filter-category">
+                            <option value="">All Categories</option>
+                            <option value="Sales">Sales</option>
+                            <option value="Procurement">Procurement</option>
+                            <option value="General">General</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="sort-priority">Sort by</label>
+                        <select id="sort-priority">
+                            <option value="desc">Priority (High to Low)</option>
+                            <option value="asc">Priority (Low to High)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tickets Queue -->
+                <div class="ticket-scroll-container">
+                    <div class="ticket-list" id="ticket-list">
+                        <!-- Loaded dynamically -->
+                        <div class="loading-state">Loading tickets...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Ticket Detail View -->
+            <section class="ticket-detail-panel" id="ticket-detail-panel">
+                <!-- Selected state loaded dynamically -->
+                <div class="empty-state">
+                    <div class="empty-icon"></div>
+                    <h3>Select a ticket from the queue</h3>
+                    <p>Click on any ticket in the left sidebar to view its details, RAG context reference materials, audit logs, and update the generated reply draft.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Script -->
+    <script src="app.js"></script>
+</body>
+</html>

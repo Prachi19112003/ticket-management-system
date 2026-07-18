@@ -16,6 +16,7 @@ from app.integrations.embedding_client import get_embedding
 from app.core.config import settings
 from app.core.logging import logger
 from app.core.exceptions import DatabaseException, LLMException, ValidationException
+from app.repositories.llm_usage_repo import LLMUsageRepository
 
 class DraftService:
     def __init__(self, db: AsyncSession) -> None:
@@ -24,6 +25,7 @@ class DraftService:
         self.customer_repo = CustomerRepository(db)
         self.retrieval_service = RetrievalService(db)
         self.summary_service = ThreadSummaryService()
+        self.llm_usage_repo = LLMUsageRepository(db)
 
     async def generate_draft(self, ticket_id: uuid.UUID) -> dict:
         """
@@ -115,11 +117,20 @@ class DraftService:
         # 6. Call LLM & Validate
         draft_result = None
         try:
-            raw_json = await generate_completion_json(
+            raw_json, usage = await generate_completion_json(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 temperature=0.2
             )
+            if usage:
+                await self.llm_usage_repo.log_usage(
+                    ticket_id=ticket_id,
+                    call_type="draft_generation",
+                    model=settings.OPENROUTER_MODEL,
+                    input_tokens=usage.get("prompt_tokens"),
+                    output_tokens=usage.get("completion_tokens"),
+                    total_tokens=usage.get("total_tokens")
+                )
             
             # Parse raw response and validate against schema
             from app.utils.json_cleaner import clean_json_markdown
@@ -209,7 +220,9 @@ class DraftService:
         try:
             await self.summary_service.update_summary(
                 thread_id=ticket.thread_id,
-                new_body=f"Agent Response: {draft_result['draft_reply']}"
+                new_body=f"Agent Response: {draft_result['draft_reply']}",
+                db=self.db,
+                ticket_id=ticket.id
             )
         except Exception as e:
             logger.warning("Failed to update thread summary after generating draft", error=str(e))

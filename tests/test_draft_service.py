@@ -129,7 +129,7 @@ async def test_generate_draft_success(db: AsyncSession, redis_client):
     }
     
     with patch("app.services.draft_service.generate_completion_json", new_callable=AsyncMock) as mock_complete:
-        mock_complete.return_value = json.dumps(mock_llm_response)
+        mock_complete.return_value = (json.dumps(mock_llm_response), {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150})
 
         # 2. Run draft generation orchestration
         draft_service = DraftService(db)
@@ -194,7 +194,7 @@ async def test_generate_draft_fallback_on_invalid_json(db: AsyncSession, redis_c
 
     # Mock the LLM to return malformed JSON to trigger ValidationException
     with patch("app.services.draft_service.generate_completion_json", new_callable=AsyncMock) as mock_complete:
-        mock_complete.return_value = "{ malformed json "
+        mock_complete.return_value = ("{ malformed json ", {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150})
 
         draft_service = DraftService(db)
         result = await draft_service.generate_draft(ticket.id)
